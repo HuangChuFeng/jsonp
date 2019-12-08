@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+<head>
+</head>
+<body>
+    <h1>JSONP 实现</h1>
+    <button id="getBtn">获取jsonp数据</button>
+<div id="resWrap"></div>
+<script>
+    // jsonp函数封装
+    function Jsonp({ url, data, onError, onSuccess } = {}) {
+        const script = document.createElement('script');
+        const head = document.getElementsByTagName('head')[0];
+        const globalFn = onSuccess.name + (+new Date());
+        data['callback'] = globalFn;
+        script.src = url + '?' + formatParams(data);
+        head.appendChild(script);
+
+        window[globalFn] = function(res) {
+            head.removeChild(script);
+            delete window[globalFn];
+            clearTimeout(timer);
+            onSuccess && onSuccess(res);
+        }
+
+        var timer = setTimeout(() => {
+            head.removeChild(script);
+            delete window[globalFn];
+            onError && onError('请求超时')
+        }, 5000);
+
+        script.onerror = function() {
+            delete window[callbackName]
+            head.removeChild(script);
+            clearTimeout(timer);
+            delete window[globalFn];
+            onError && onError('资源加载失败')
+        }
+    }
+
+    function formatParams(params) {
+        let res = [];
+        for(let k in params) {
+            res.push(k + '=' + params[k]);
+        }
+        return res.join('&');
+    }
+
+
+    const btn = document.getElementById('getBtn');
+    const resWrap = document.getElementById('resWrap');
+    btn.onclick = function() {
+        Jsonp({
+            url: 'http://www.b.com:8001/jsonp',
+            data: { value: 'testValue' },
+            onError: function(error) {
+                console.log(error);
+            },
+            onSuccess: function(res) {
+                console.log('jsonp res----', res)
+                resWrap.innerHTML = JSON.stringify(res)
+            }
+        })
+    }
+</script>
+</body>
+</html>
